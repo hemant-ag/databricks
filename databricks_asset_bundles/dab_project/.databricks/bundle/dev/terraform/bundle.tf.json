@@ -1,0 +1,112 @@
+{
+  "terraform": {
+    "required_providers": {
+      "databricks": {
+        "source": "databricks/databricks",
+        "version": "1.92.0"
+      }
+    }
+  },
+  "provider": {
+    "databricks": {}
+  },
+  "resource": {
+    "databricks_job": {
+      "dab_project_job": {
+        "deployment": {
+          "kind": "BUNDLE",
+          "metadata_file_path": "/Workspace/Users/hemantbansal1992@gmail.com/.bundle/dab_project/dev/state/metadata.json"
+        },
+        "edit_mode": "UI_LOCKED",
+        "environment": [
+          {
+            "environment_key": "default",
+            "spec": {
+              "dependencies": [
+                "./dist/*.whl"
+              ],
+              "environment_version": "2"
+            }
+          }
+        ],
+        "format": "MULTI_TASK",
+        "max_concurrent_runs": 4,
+        "name": "[dev hemantbansal1992] dab_project_job",
+        "queue": {
+          "enabled": true
+        },
+        "tags": {
+          "dev": "hemantbansal1992"
+        },
+        "task": [
+          {
+            "depends_on": [
+              {
+                "task_key": "refresh_pipeline"
+              }
+            ],
+            "environment_key": "default",
+            "python_wheel_task": {
+              "entry_point": "main",
+              "package_name": "dab_project"
+            },
+            "task_key": "main_task"
+          },
+          {
+            "notebook_task": {
+              "notebook_path": "/Workspace/Users/hemantbansal1992@gmail.com/.bundle/dab_project/dev/files/src/notebook",
+              "source": "WORKSPACE"
+            },
+            "task_key": "notebook_task"
+          },
+          {
+            "depends_on": [
+              {
+                "task_key": "notebook_task"
+              }
+            ],
+            "pipeline_task": {
+              "pipeline_id": "${databricks_pipeline.dab_project_pipeline.id}"
+            },
+            "task_key": "refresh_pipeline"
+          }
+        ],
+        "trigger": {
+          "pause_status": "PAUSED",
+          "periodic": {
+            "interval": 1,
+            "unit": "DAYS"
+          }
+        }
+      }
+    },
+    "databricks_pipeline": {
+      "dab_project_pipeline": {
+        "catalog": "workspace",
+        "channel": "CURRENT",
+        "configuration": {
+          "bundle.sourcePath": "/Workspace/Users/hemantbansal1992@gmail.com/.bundle/dab_project/dev/files/src"
+        },
+        "deployment": {
+          "kind": "BUNDLE",
+          "metadata_file_path": "/Workspace/Users/hemantbansal1992@gmail.com/.bundle/dab_project/dev/state/metadata.json"
+        },
+        "development": true,
+        "edition": "ADVANCED",
+        "library": [
+          {
+            "notebook": {
+              "path": "/Workspace/Users/hemantbansal1992@gmail.com/.bundle/dab_project/dev/files/src/pipeline"
+            }
+          }
+        ],
+        "name": "[dev hemantbansal1992] dab_project_pipeline",
+        "schema": "dab_project_dev",
+        "serverless": true,
+        "tags": {
+          "dev": "hemantbansal1992"
+        }
+      }
+    }
+  }
+}

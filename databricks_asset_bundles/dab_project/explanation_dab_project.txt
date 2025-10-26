@@ -1,0 +1,118 @@
+First install databricks cli, which is must for databricks asset bundles
+
+Steps:
+
+databricks auth login 
+-- it will prompt for profile name, host url, it will authenticate with databricks
+
+databricks auth profiles
+-- it will display all the profiles present in /databrickscfg file.
+
+Name    Host                                            Valid
+DEVENV  https://dbc-86a222a2-9887.cloud.databricks.com  YES
+
+databricks catalogs create assetbundles
+-- it will create the catalog, but due to free edition , we dont have control over metastore storage location, so we need to create it from ui
+
+Error: Metastore storage root URL does not exist. Default Storage is enabled in your account. 
+You can use the UI to create a new catalog using Default Storage, 
+or please provide a storage location for the catalog 
+(for example 'CREATE CATALOG myCatalog MANAGED LOCATION '<location-path>').
+
+databricks catalogs get assetbundles
+-- shows the details of the catalog assetbundles
+
+databricks schemas create bronze assetbundles
+-- creates schema bronze under assetbundles catalog
+
+databricks bundle init
+-- it will prompt some details and initialize the bundle and create a project
+
+Welcome to the default Python template for Databricks Asset Bundles!
+Please provide the following details to tailor the template to your preferences.
+
+Unique name for this project [my_project]: dab_project
+Include a stub (sample) notebook in 'dab_project/src': yes
+Include a stub (sample) Lakeflow Declarative Pipeline in 'dab_project/src': yes
+Include a stub (sample) Python package in 'dab_project/src': yes
+Use serverless compute: yes
+Workspace to use (auto-detected, edit in 'dab_project/databricks.yml'): https://dbc-86a222a2-9887.cloud.databricks.com
+
+✨ Your new project has been created in the 'dab_project' directory!
+
+Please refer to the README.md file for "getting started" instructions.
+See also the documentation at https://docs.databricks.com/dev-tools/bundles/index.html.
+
+So, project structre is like :
+pwd
+/home/hemant.agarwal/Desktop/DatabricksAssetBundles/dab_project
+
+hemant.agarwal@hp:~/Desktop/DatabricksAssetBundles/dab_project$ ls -lrt
+total 32
+-rw-r--r-- 1 hemant.agarwal domain users 2271 Oct 20 14:16 README.md
+-rw-r--r-- 1 hemant.agarwal domain users  908 Oct 20 14:16 pyproject.toml
+-rw-r--r-- 1 hemant.agarwal domain users 1178 Oct 20 14:16 databricks.yml
+drwxr-xr-x 2 hemant.agarwal domain users 4096 Oct 20 14:16 fixtures
+drwxr-xr-x 2 hemant.agarwal domain users 4096 Oct 20 14:16 scratch
+drwxr-xr-x 2 hemant.agarwal domain users 4096 Oct 20 14:16 resources
+drwxr-xr-x 2 hemant.agarwal domain users 4096 Oct 20 14:16 tests
+drwxr-xr-x 3 hemant.agarwal domain users 4096 Oct 20 14:16 src
+
+so, databricks.yml is the mail bundle
+fixtures contains the files like .gitkeep
+resources contains creation of jobs, pipelines like dab_project_job.yml , dab_project_pipeline.yml etc
+scratch contains files like exploration.pynb
+src contains actual code such as notebook.ipynb, pipeline.ipynb
+tests contains coding related to testing such as pytest, unittest
+
+so we will add a notebooks folder in src and create our notebook print.ipynb
+will run command now to deploy this to databricks Workspace
+
+databricks bundle deploy --target dev
+-- it uses the databricks.yml to deploy to dev environment
+
+it fails of the error:
+Building python_artifact...
+Error: build failed python_artifact, error: exit status 127, output: /usr/bin/bash: line 1: uv: command not found
+
+because the step is present in databricks.yml which we need to remove or install uv to fix this
+artifacts:
+  python_artifact:
+    type: whl
+    build: uv build --wheel
+
+
+As a measure, i installed uv and it deployed all to .bundle folder in 
+Building python_artifact...
+Uploading dist/dab_project-0.0.1-py3-none-any.whl...
+Uploading bundle files to /Workspace/Users/hemantbansal1992@gmail.com/.bundle/dab_project/dev/files...
+Deploying resources...
+Updating deployment state...
+Deployment complete!
+
+Result:
+
+so here, it creates a folder having structure
+
+.bundle
+-- dab_project
+    -- dev
+        -- artifacts
+            -- .internal
+                -- dab_project-0.0.1-py3-none-any.whl
+        -- files
+            -- .vscode
+            --  fixtures
+            --  resources
+            --  src
+            --  tests
+            --  databricks.yml
+            --  pyproject.toml
+        --  state
+            --  deployment.json
+            --  metadata.json
+            --  terraform.tfstate  
+
+and also job and pilepline was created as 
+-- [dev hemantbansal1992] dab_project_job
+-- [dev hemantbansal1992] dab_project_pipeline

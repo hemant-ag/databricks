@@ -1,0 +1,12 @@
+resources:
+  jobs:
+    dab_proj_custom_job:
+      name: dab_proj_custom_job
+      tasks:
+        - task_key: print_custom
+          notebook_task:
+            notebook_path: /Workspace/Users/hemantbansal1992@gmail.com/.bundle/dab_proj_custom/dev/files/src/notebooks/print_custom
+            source: WORKSPACE
+      queue:
+        enabled: true
+      performance_target: PERFORMANCE_OPTIMIZED

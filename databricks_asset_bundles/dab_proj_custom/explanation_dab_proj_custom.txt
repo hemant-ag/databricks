@@ -1,0 +1,195 @@
+First install databricks cli, which is must for databricks asset bundles
+
+Steps:
+
+databricks auth login 
+-- it will prompt for profile name, host url, it will authenticate with databricks
+
+databricks auth profiles
+-- it will display all the profiles present in /databrickscfg file.
+
+Name    Host                                            Valid
+DEVENV  https://dbc-86a222a2-9887.cloud.databricks.com  YES
+
+databricks catalogs create assetbundles
+-- it will create the catalog, but due to free edition , we dont have control over metastore storage location, so we need to create it from ui
+
+Error: Metastore storage root URL does not exist. Default Storage is enabled in your account. 
+You can use the UI to create a new catalog using Default Storage, 
+or please provide a storage location for the catalog 
+(for example 'CREATE CATALOG myCatalog MANAGED LOCATION '<location-path>').
+
+databricks catalogs get assetbundles
+-- shows the details of the catalog assetbundles
+
+databricks schemas create bronze assetbundles
+-- creates schema bronze under assetbundles catalog
+
+databricks bundle init
+-- it will prompt some details and initialize the bundle and create a project
+
+Welcome to the default Python template for Databricks Asset Bundles!
+Please provide the following details to tailor the template to your preferences.
+
+Unique name for this project [my_project]: dab_proj_custom
+Include a stub (sample) notebook in 'dab_proj_custom/src': yes
+Include a stub (sample) Lakeflow Declarative Pipeline in 'dab_proj_custom/src': yes
+Include a stub (sample) Python package in 'dab_proj_custom/src': yes
+Use serverless compute: yes
+Workspace to use (auto-detected, edit in 'dab_proj_custom/databricks.yml'): https://dbc-86a222a2-9887.cloud.databricks.com
+
+✨ Your new project has been created in the 'dab_proj_custom' directory!
+
+Please refer to the README.md file for "getting started" instructions.
+See also the documentation at https://docs.databricks.com/dev-tools/bundles/index.html.
+
+So, project structre is like :
+pwd
+/home/hemant.agarwal/Desktop/DatabricksAssetBundles/dab_proj_custom
+
+hemant.agarwal@hp:~/Desktop/DatabricksAssetBundles/dab_proj_custom$ ls -alrt
+total 60
+-rw-r--r-- 1 hemant.agarwal domain users 4616 Oct 22 12:33 explanation_dab_proj_custom.txt
+-rw-r--r-- 1 hemant.agarwal domain users 2287 Oct 22 12:37 README.md
+-rw-r--r-- 1 hemant.agarwal domain users  920 Oct 22 12:37 pyproject.toml
+-rw-r--r-- 1 hemant.agarwal domain users   87 Oct 22 12:37 .gitignore
+-rw-r--r-- 1 hemant.agarwal domain users 1186 Oct 22 12:37 databricks.yml
+drwxr-xr-x 2 hemant.agarwal domain users 4096 Oct 22 12:37 .vscode
+drwxr-xr-x 2 hemant.agarwal domain users 4096 Oct 22 12:37 resources
+drwxr-xr-x 2 hemant.agarwal domain users 4096 Oct 22 12:37 fixtures
+drwxr-xr-x 2 hemant.agarwal domain users 4096 Oct 22 12:37 scratch
+drwxr-xr-x 2 hemant.agarwal domain users 4096 Oct 22 12:37 tests
+drwxr-xr-x 3 hemant.agarwal domain users 4096 Oct 22 12:37 src
+drwxr-xr-x 4 hemant.agarwal domain users 4096 Oct 22 12:37 ..
+drwx------ 3 hemant.agarwal domain users 4096 Oct 22 12:38 .databricks
+drwxr-xr-x 9 hemant.agarwal domain users 4096 Oct 22 12:38 .
+
+point to note that .databricks is created when we deploy or validate a bundle
+
+
+so, databricks.yml is the main bundle
+fixtures contains the files like .gitkeep
+resources contains creation of jobs, pipelines like dab_project_job.yml , dab_project_pipeline.yml etc
+scratch contains files like exploration.pynb
+src contains actual code such as notebook.ipynb, pipeline.ipynb
+tests contains coding related to testing such as pytest, unittest
+
+so we will add a notebooks folder in src and create our notebook print.ipynb
+will run command now to deploy this to databricks Workspace
+
+
+Here , i have deleted the files present in resources, src, tests folder and make them blank
+created a notebooks folder in src and created print_custom.ipynb
+
+also 
+
+databricks bundle deploy --target dev
+-- it uses the databricks.yml to deploy to dev environment
+
+it fails of the error:
+Building python_artifact...
+Error: build failed python_artifact, error: exit status 127, output: /usr/bin/bash: line 1: uv: command not found
+
+because the step is present in databricks.yml which we need to remove or install uv to fix this
+artifacts:
+  python_artifact:
+    type: whl
+    build: uv build --wheel
+
+
+As a measure, i installed uv and it deployed all to .bundle folder in 
+Building python_artifact...
+Uploading dist/dab_proj_custom-0.0.1-py3-none-any.whl...
+Uploading bundle files to /Workspace/Users/hemantbansal1992@gmail.com/.bundle/dab_proj_custom/dev/files...
+Deploying resources...
+Deployment complete!
+
+Result:
+
+so here, it creates a folder having structure
+
+.bundle
+-- dab_proj_custom
+    -- dev
+        -- artifacts
+            -- .internal
+                -- dab_proj_custom-0.0.1-py3-none-any.whl
+        -- files
+            -- .vscode
+            --  fixtures
+            --  src
+            --  .gitignore
+            --  explanation_dab_proj_custom.txt
+            --  databricks.yml
+            --  pyproject.toml
+            --  README.md
+        --  state
+            --  deployment.json
+            --  metadata.json
+
+Here 2 points to note:
+--  resources and tests folder did not deploy as they were empty
+--  terraform.tfstate file has not been created in state folder as there are no resources created.
+
+also, there is a json file in the folder sync_snapshots in .databricks folder which has details about the last modified timestamp of all files
+
+ok , going forward we will create some resources, change/create some files and see
+
+
+We will create a job named dab_proj_custom_job in databricks from UI, and copy it's json and create a job file in resources/jobs folder
+
+-- so now in the file , we will modify the Workspace path to a relative path
+    from:
+        notebook_path: /Workspace/Users/hemantbansal1992@gmail.com/.bundle/dab_proj_custom/dev/files/src/notebooks/print_custom
+    to:
+        notebook_path: ../../src/notebooks/print_custom.ipynb
+
+
+so now, resources folder and terraform.tfstate file has been deployed,
+but this time job has been created with the name
+
+[dev hemantbansal1992] dab_proj_custom_job
+
+By default , the preset is set as '[dev my_user_name]' in databricks.yml file
+
+we can change the default behaviour by setting name_prefix parameter in presets
+and also can make source_linked_deployment parameter to false such that it can point to resources in other workspace instead of current Workspace
+the job is updated now, not created again with the name
+
+dev_hemantbansal1992_dab_proj_custom_job
+
+If we delete .databricks folder and deploy again, it will start from scratch
+
+Assume a scenario, where you have deleted the notebook from databricks/target
+
+Option 1
+    --  delete .databricks folder and then deploy from scratch
+
+Option 2
+    --  remove that particular notebook entry from json file present in sync_snapshots folder in .databricks folder, but that will create a mess
+
+Lets go with option 2 , 
+    a)  first not removing the entry then it will assume that it has been deployed, and print_custom notebook will not be deployed
+    b)  removing the entry then it will assume that it has been deployed, and print_custom notebook will not be deployed
+        --  here it will fail because the entry is gone, and it wont be able to compare
+
+        Building python_artifact...
+        Uploading dist/dab_proj_custom-0.0.1-py3-none-any.whl...
+        Uploading bundle files to /Workspace/Users/hemantbansal1992@gmail.com/.bundle/dab_proj_custom/dev/files...
+        Error: error parsing existing sync state. 
+        Please delete your existing sync snapshot file (/home/hemant.agarwal/Desktop/DatabricksAssetBundles/dab_proj_custom/.databricks/bundle/dev/sync-snapshots/aaa14e4f2bad9417.json) and retry: invalid sync state representation. Local file src/notebooks/print_custom.ipynb is missing it's last modified time
+
+so best is to go with option1 or delete that json
+
+
+Production deployment:
+
+--  changed the root_path to include PROD folder as well
+--  changed the permissions to group level
+--  changed the presets to prod_{user_name}_
+
+Here , we need need provide --target prod as the host is looked for in the databrickscfg file.
+as long as it is present in the databrickscfg file which is already authenticated, it authenticates everything
+
+databricks bundle summary --target prod
+-- it provides a summary of the changes/resources that are going to be deployed

@@ -1,0 +1,14 @@
+# The main pipeline for dab_project
+resources:
+  pipelines:
+    dab_project_pipeline:
+      name: dab_project_pipeline
+      catalog: workspace
+      schema: dab_project_${bundle.target}
+      serverless: true
+      libraries:
+        - notebook:
+            path: ../src/pipeline.ipynb
+
+      configuration:
+        bundle.sourcePath: ${workspace.file_path}/src
